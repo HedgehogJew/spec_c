@@ -1,0 +1,172 @@
+Введение:
+
+Будет уместно ввести следующие ограничения:
+1. Следует учитывать следующий список возможных ошибок
+    2.1 Ошибка открытия файла
+    2.2 Ошибка выделения памяти.
+    2.3 Извлечённый тип пользователя отличный от какого-либо из ожидаемых.
+    2.4 Несовпадение ожидаемого размера блока данных (в соответсвии с типом пользователя) и полученного.
+    2.5 Несовпадение извлечённого кода секции и ожидаемого.
+    2.6 Несовпадение вычисленного значения контрольной суммы crc16 и извлечённого, для любой из секций.
+    2.7 Несовпадение вычисленного значения контрольной суммы crc32 и извлечённого из третьей секции значения.
+    2.8 Превышение допустимого времени загрузки данных относительно текущего времени.
+    2.9 Отсутствие пользователя с извлечённным типом пользователя и именем в таблице, хранящей права доступа.
+    2.10 Ошибка передачи некорректных данных в качестве аргументов функций, предназначенных для пользователя 
+    (Для внутренних функций мы можем контролировать передаваемые аргументы)  NB: Эта ошибка не будет учтена в спецификации, но будет учтена в коде, хоть это и не обязательно.
+    
+    Этот список возможных ошибок является полным и достаточным.
+
+2. Граф переходов состояний системы представляет собой дерево без циклов, что значительно упрощает задачу, так как темпоральноcть логики можно не учитывать.
+
+
+
+В силу того, что программа, по сути, представляет собой набор посследовательных проверок входных данных. Уместно считать итоги этих проверок изменениями состояния системы.
+
+Определим константы, для работы со случаями получения некорректных данных из файла. 
+
+CONSTANTS   ADMINSIZE, ADMINTYPE, USERSIZE, USERTYPE, WRONGAUTHORTYPE 
+            CORRECTTITLE, WRONGTITLE,
+            AUTHORTITLE, DATATITLE, CONTROLTITLE, WRONGTITLETYPE,
+            CORRECTTIME EXCEEDEDTIME,
+            AUTHORIZEDNAMES, UNATHORIZEDNAME,
+            CORRECTDATA, WRONGDATA,
+            RUNNING, COMPLETED, FAILED
+
+VARIABLES   accessList, titleTypes, title, titlesArr, authorName, package, status
+
+INIT ==
+    /\ status = RUNNING
+    /\ accessList == [type: \in {ADMINTYPE, USERTYPE}, name: \in AUTHORIZEDNAMES]
+    /\ titleTypes == {AUTHORTITLE, DATATITLE, CONTROLTITLE, WRONGTITLETYPE}
+
+    /\ title == <state \in {CORRECTTITTLE, WRONGTITLE}, titleType \in titletypes>   /* Более подробное описание полей заголовка секции не целесообразно */
+    /\ titlesArr == <<CHOOSE t1 \in title, CHOOSE t2 \in title, CHOOSE t3 \in title>> /* Для удобства работы со спецификацией будем хранить заголовки в массиве */
+
+    /\ authorName == \in AUTHORIZEDNAMES \cup {UNATHORIZEDNAME}
+
+    /\ package == [dataSize: \in {ADMINSIZE, USERSIZE}, authorType: \in {ADMINTYPE, USERTYPE, WRONGAUTHORTYPE}, // тип данных преднахначенный для упрощения чтения спецификации
+                    timeStamp \in {CORRECTTIME, EXCEEDEDTIME}, authorName, titlesArr, dataStatus \in {CORRECTDATA, WRONGDATA}]
+
+
+
+/* В силу того, что проверка выделения памяти и открытия файла происходит сразу, после попытки выделения, и работа программы в случае ошибки 
+    прекращается, то  изменение каких-либо полей, с целью сохранения этого состояния в дальнейшем, не нужно */
+
+OpenFile() /* Ошибка 2.1 */
+    \/ _out (TRUE)
+    \/ _out (FALSE)
+
+
+MemoryAlloc ()  /* Ошибка 2.2 */
+    \/ _out (TRUE)
+    \/ _out (FALSE)
+
+AuthorTypeCheck (authorType) /* Ошибка 2.3 */
+    /\  IF authorType \in {ADMINTYPE, USERTYPE}
+        THEN
+            /\ _out (TRUE)
+        ELSE
+            /\ _out (FALSE)
+
+DataSizeCheck(package) /* Ошибка 2.4 */
+    /\  IF 
+            /\ package.authorType == ADMINTYPE
+            /\ package.size == ADMINSIZE
+        THEN
+            /\ _out (TRUE)
+        ELSE
+            /\  IF  
+                    /\ package.authorType == USERTYPE
+                    /\ package.size == USERSIZE
+                THEN    
+                    /\ _out (TRUE)
+                ELSE   
+                    /\ _out (FALSE)
+
+SectionTypeCheck(title, titleType) /* Ошибка 2.5 */
+    /\  IF 
+            /\ 
+                \/ title != titleType
+                \/ title == WRONGTITLETYPE    /* Возможно, что это условие избыточно, так как titleType однозначно представлен в Next
+            /\ _out (FALSE)
+        ELSE 
+            /\ _out (TRUE)
+
+CRC16 (state) /* Ошибка 2.6 */
+    /\ IF state == CORRECT
+        THEN 
+            /\ _out (TRUE)
+        ELSE 
+            /\ _out (FALSE)
+
+CRC32 (dataStatus) /* Ошибка 2.7 */
+    /\ IF dataStatus == CORRECT
+        THEN 
+            /\ _out (TRUE)
+        ELSE 
+            /\ _out (FALSE)
+
+TimeStampCheck(timeStamp) /* Ошибка 2.8 */
+    /\  IF
+            /\ timeStamp == EXCEEDEDTIME
+            /\ _out (FALSE)
+        ELSE
+            /\ _out (TRUE)
+
+AccessCheck(authorType, authorName, accessList) /* Ошибка 2.9 */
+    /\  IF
+            /\ OpenFile() /* Извлечение базы с правами доступа */
+            /\ authorType == \in accessList.type
+            /\ authorName == \in accessList.name
+        THEN
+            /\ _out (TRUE)
+        ELSE
+            /\ _out (FALSE)
+
+/* Успешное завершение работы программы являет собой отсутствие любой из введённых выше ошибок. 
+В данной спецификации условия успешного выполнения выполняются единомоментно так как не имеет смысла учитывать те изменения системы, 
+которые происходят во время выполнении кода (Очередь доступа к процессору, добавление и извлечение переменных на стеке и т.п.) */
+
+Next ==
+    \/
+        /\ OpenFile() // Считываем данные из файла
+        /\ MemoryAlloc() // Выделяем память для хранения извлечённых данных
+        
+        /* Начинаем парсинг */
+        
+        /\ AuthorTypeCheck ( package.authorType) /* Проверка типа автора для определения размера блока памяти перед выделением памяти */
+
+        /\ MemoryAlloc() // Выделение памяти для экземпляра структуры
+        
+        /* Парсинг первой секции */
+        
+        /\ SectionTypeCheck(package.titlesArr[0].titleType, AUTHORTITLE)
+        /\ CRC16(package.titlesArr[0].state)
+
+        /* Парсинг второй секции */
+        
+        /\ SectionTypeCheck(package.titlesArr[1].titleType, DATATITLE)
+        /\ MemoryAlloc()  /* Выделение памяти для хранения данных внутри структуры */
+        /\ CRC16(package.titlesArr[1].state)
+
+        /* Парсинг третьей секции */
+        
+        /\ SectionTypeCheck(package.titlesArr[2].titleType, CONTROLTITLE)
+        /\ CRC16(package.titlesArr[2].state)
+
+        /* Проверка доступа */
+        /\ AccessCheck(package.authorType, package.authorName, accessList)
+        
+        /* Проверка Контрольной суммы crc32 */
+        /\ CRC32(package.dataStatus)
+
+        /* Проверка времени доступа */
+        /\ TimeStampCheck(package.timeStamp)
+
+        /\ status = COMPLETED
+    \/
+        /\ status = FAILED
+
+Spec == Init /\ []Next 
+
+
