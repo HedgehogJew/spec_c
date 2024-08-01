@@ -182,7 +182,7 @@ Parsed_data *parse_data_section(Parsed_data *src, const uint8_t *unparsed_sectio
 
     src->data_section_title = parse_title(unparsed_section_2);
 
-    // ВЫделение памяти для массива, хранящего данные
+    // Выделение памяти для массива, хранящего данные
     src->data = (uint8_t *)calloc(data_size, sizeof(uint8_t));
     if (src->data == NULL)
     {
@@ -259,7 +259,6 @@ int check_access(uint8_t src_author_type, uint8_t *src_name)
     uint8_t buf[buf_size];                                                              // Максимальная длина строки (1 байт на тип, 1 байт на запятую, 4 байт на CRC32, 1 байт на '\n')
 
     size_t name_len = strlen((char *)src_name);
-    // printf("Current \nname: %s\nauthor type: %u\n", src_name, src_author_type);
 
     uint32_t src_crc32 = crc32_calculate(src_name, name_len);
 
@@ -270,8 +269,6 @@ int check_access(uint8_t src_author_type, uint8_t *src_name)
         uint32_t crc32 = 0;
 
         memcpy(&crc32, &buf[2], sizeof(uint32_t));
-
-        // printf("type = %u, crc32 = %u ", type, crc32);
 
         if (type == src_author_type && crc32 == src_crc32)
         {
@@ -386,8 +383,6 @@ Parsed_data *parse_package(const uint8_t *src_array)
     g_trace.crc32_control = PASSED;
 
     timestamp_t current_time = (timestamp_t)time(NULL);
-
-    // printf("Time check: current %lu, input %lu\n", current_time, res->timestamp);
 
     if (res->timestamp < current_time)
     {
