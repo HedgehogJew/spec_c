@@ -3,26 +3,11 @@
 #include "crc.h"
 // взято из https://ru.wikibooks.org/wiki/%D0%A0%D0%B5%D0%B0%D0%BB%D0%B8%D0%B7%D0%B0%D1%86%D0%B8%D0%B8_%D0%B0%D0%BB%D0%B3%D0%BE%D1%80%D0%B8%D1%82%D0%BC%D0%BE%D0%B2/%D0%A6%D0%B8%D0%BA%D0%BB%D0%B8%D1%87%D0%B5%D1%81%D0%BA%D0%B8%D0%B9_%D0%B8%D0%B7%D0%B1%D1%8B%D1%82%D0%BE%D1%87%D0%BD%D1%8B%D0%B9_%D0%BA%D0%BE%D0%B4
 
-/*
-  Name  : CRC-32
-  Poly  : 0x04C11DB7    x^32 + x^26 + x^23 + x^22 + x^16 + x^12 + x^11
-                       + x^10 + x^8 + x^7 + x^5 + x^4 + x^2 + x + 1
-  Init  : 0xFFFFFFFF
-  Revert: true
-  XorOut: 0xFFFFFFFF
-  Check : 0xCBF43926 ("123456789")
-  MaxLen: 268 435 455 байт (2 147 483 647 бит) - обнаружение
-   одинарных, двойных, пакетных и всех нечетных ошибок
-*/
+
 
 uint_least32_t crc32_calculate(uint8_t *buf, size_t len)
 {
-    //  printf("\nCrc 32 input: \n");
 
-    //  for (int i = 0; i < len; i++)
-    //  {
-    //      printf("%d ", buf[i]);
-    //  }
 
     uint_least32_t crc_table[256];
     uint_least32_t crc;
@@ -59,11 +44,6 @@ uint_least32_t crc32_calculate(uint8_t *buf, size_t len)
 
 uint16_t crc16_calculate(uint8_t *pcBlock, uint16_t len)
 {
-    //   for (int i = 0; i < len; i++)
-    //   {
-    //       printf("%d ", pcBlock[i]);
-    //   }
-    //
     uint16_t crc = 0xFFFF;
     uint8_t i;
 
@@ -74,7 +54,6 @@ uint16_t crc16_calculate(uint8_t *pcBlock, uint16_t len)
         for (i = 0; i < 8; i++)
             crc = crc & 0x8000 ? (crc << 1) ^ 0x1021 : crc << 1;
     }
-    // printf("\nRes crc16: %d\n\n", crc);
     return crc;
 }
 
